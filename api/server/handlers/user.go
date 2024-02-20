@@ -13,47 +13,71 @@ import (
 )
 
 type User struct {
-	Name  string `bson:"name"`
-	Age   int    `bson:"age"`
-	Email string `bson:"email"`
+	Name  string `json:"name"`
+	Age   int    `json:"age"`
+	Email string `json:"email"`
 }
 
-func UserHandler(w http.ResponseWriter, r *http.Request) {
-
-	if mongo.Client == nil {
-		log.Fatal("MongoDB client não foi inicializado")
-	}
-	newUser := User{
-		Name:  "John Doe",
-		Age:   30,
-		Email: "johndoe@example.com",
+func (u *User) validateUser() error {
+	if u.Email == "" || u.Name == "" || u.Age <= 0 {
+		return fmt.Errorf("request body is empty or malformed")
 	}
 
-	// Insere o novo usuário na coleção 'users'
+	if u.Email == "" {
+		return errParamIsRequired("email", "string")
+	}
+
+	if u.Name == "" {
+		return errParamIsRequired("name", "string")
+	}
+
+	if u.Age <= 0 {
+		return errParamIsRequired("age", "number")
+	}
+
+	return nil
+}
+
+func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
+	var u User
+
+	if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
+		errorResponse(w, http.StatusBadRequest, "inválid parameters")
+		return
+	}
+
+	if err := u.validateUser(); err != nil {
+		errorMessage := fmt.Sprintf("validation error: %v", err.Error())
+
+		fmt.Println(errorMessage)
+		errorResponse(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	mongo.CheckConneciton()
+
 	collection := mongo.GetCollection("users")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	result, err := collection.InsertOne(ctx, newUser)
+	result, err := collection.InsertOne(ctx, u)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Usuário inserido com sucesso:", result.InsertedID)
+	fmt.Println("Success register user", result.InsertedID)
 	w.Header().Set("Content-Type", "application/json")
 
-	err2 := json.NewEncoder(w).Encode(result)
+	err = json.NewEncoder(w).Encode(result)
 
-	if err2 != nil {
-		http.Error(w, err2.Error(), http.StatusInternalServerError)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
 func FindUsersHandler(w http.ResponseWriter, r *http.Request) {
-	if mongo.Client == nil {
-		log.Fatal("MongoDB client não foi inicializado")
-	}
+	mongo.CheckConneciton()
 
 	var filter bson.D = bson.D{{}}
 	var results []*User
@@ -85,10 +109,10 @@ func FindUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	err2 := json.NewEncoder(w).Encode(results)
+	err = json.NewEncoder(w).Encode(results)
 
-	if err2 != nil {
-		http.Error(w, err2.Error(), http.StatusInternalServerError)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

@@ -36,3 +36,9 @@ func Connect() {
 func GetCollection(collectionName string) *mongo.Collection {
 	return Client.Database("default").Collection(collectionName)
 }
+
+func CheckConneciton() {
+	if Client == nil {
+		log.Fatal("MongoDB client não foi inicializado")
+	}
+}

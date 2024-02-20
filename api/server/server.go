@@ -4,16 +4,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func Initialize() {
-	mux := http.NewServeMux()
+	r := mux.NewRouter()
 
-	InitializeRoutes(mux)
+	InitializeRoutes(r)
 
 	fmt.Println("Server is running on :3000")
 
-	if err := http.ListenAndServe(":3000", mux); err != nil {
+	if err := http.ListenAndServe(":3000", r); err != nil {
 		log.Fatal("ListenAndServe error: ", err)
 	}
 }

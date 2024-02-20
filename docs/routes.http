@@ -1,0 +1,29 @@
+@HOST=http://localhost:3000
+
+### REGISTER USER
+POST {{HOST}}/user
+Content-Type: application/json
+
+{
+  "name": "this is title",
+  "email": "this is abc",
+  "age": 123
+}
+
+### FIND ALL USERS
+GET {{HOST}}/user/all
+
+### REGISTER BILLING
+
+POST {{HOST}}/billing
+Content-Type: application/json
+
+{
+  "Reference": "this is Reference",
+  "ExpirationDate": "2023-01-01",
+  "CustomerName": "this is CustomerName",
+  "ContractId": 123
+}
+
+### FIND ALL BILLINGS
+GET {{HOST}}/billing/all
