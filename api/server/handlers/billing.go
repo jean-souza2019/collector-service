@@ -110,7 +110,7 @@ func FindBillingsHandler(w http.ResponseWriter, r *http.Request) {
 	mongo.CheckConneciton()
 
 	var filter bson.D = bson.D{{}}
-	var results []*Billing
+	var results []*CreatedBillingResponse
 
 	collection := mongo.GetCollection("billings")
 
@@ -123,24 +123,26 @@ func FindBillingsHandler(w http.ResponseWriter, r *http.Request) {
 	defer cursor.Close(ctx)
 
 	for cursor.Next(ctx) {
-		var elem Billing
+		var elem CreatedBillingResponse
 		err := cursor.Decode(&elem)
 		if err != nil {
 			log.Fatal(err)
 		}
-		results = append(results, &elem)
+
+		billing := CreatedBillingResponse{
+			Id:             elem.Id,
+			Reference:      elem.Reference,
+			ExpirationDate: elem.ExpirationDate,
+			CustomerName:   elem.CustomerName,
+			ContractId:     elem.ContractId,
+		}
+
+		results = append(results, &billing)
 	}
 
 	if err := cursor.Err(); err != nil {
 		log.Fatal(err)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	err = json.NewEncoder(w).Encode(results)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	successResponse(w, "find-all-billings", results)
 }

@@ -10,9 +10,17 @@ import (
 
 	"github.com/jean-souza2019/collector-service/pkg/mongo"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type User struct {
+	Name  string `json:"name"`
+	Age   int    `json:"age"`
+	Email string `json:"email"`
+}
+
+type CreatedUserResponse struct {
+	Id    string `json:"id"`
 	Name  string `json:"name"`
 	Age   int    `json:"age"`
 	Email string `json:"email"`
@@ -65,22 +73,27 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Success register user", result.InsertedID)
-	w.Header().Set("Content-Type", "application/json")
-
-	err = json.NewEncoder(w).Encode(result)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	objectId, ok := result.InsertedID.(primitive.ObjectID)
+	if !ok {
+		log.Fatal("Not accepted inserted id")
 	}
+
+	userCreated := CreatedUserResponse{
+		Id:    objectId.Hex(),
+		Email: u.Email,
+		Name:  u.Name,
+		Age:   u.Age,
+	}
+
+	fmt.Println("Success register user:", objectId.Hex())
+	successResponse(w, "register-user", userCreated)
 }
 
 func FindUsersHandler(w http.ResponseWriter, r *http.Request) {
 	mongo.CheckConneciton()
 
 	var filter bson.D = bson.D{{}}
-	var results []*User
+	var results []*CreatedUserResponse
 
 	collection := mongo.GetCollection("users")
 
@@ -95,24 +108,23 @@ func FindUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Iterando sobre os documentos encontrados
 	for cursor.Next(ctx) {
-		var elem User
+		var elem CreatedUserResponse
 		err := cursor.Decode(&elem)
 		if err != nil {
 			log.Fatal(err)
 		}
-		results = append(results, &elem)
+		userCreated := CreatedUserResponse{
+			Id:    elem.Id,
+			Email: elem.Email,
+			Name:  elem.Name,
+			Age:   elem.Age,
+		}
+		results = append(results, &userCreated)
 	}
 
 	if err := cursor.Err(); err != nil {
 		log.Fatal(err)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	err = json.NewEncoder(w).Encode(results)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	successResponse(w, "find-all-users", results)
 }
