@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+  # app:
+  #   build: 
+  #     context: ../
+  #     dockerfile: build/Dockerfile
+  #     target: dev
+  #   hostname: collector-service
+  #   container_name: collector-service
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - mongo
+  #   networks:
+  #     - collector-service
+  
+  mongo:
+    image: mongo:latest
+    hostname: mongo
+    container_name: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    networks:
+      - collector-service
+volumes:
+  mongodata:
+
+networks:
+  collector-service:
